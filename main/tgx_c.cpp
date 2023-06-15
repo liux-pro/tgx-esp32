@@ -55,7 +55,7 @@ Image<RGB565> imageBuffer[2] = {
         Image<RGB565>(fb[1], SLX, SLY)
 };
 
-Image<RGB565> *getImageBuffer() {
+Image<RGB565> *getLocalImageBuffer() {
     return &imageBuffer[screenIndex];
 }
 
@@ -64,7 +64,7 @@ Renderer3D<RGB565, TGX_SHADER_MASK_ALL, float> renderer;
 extern "C" void tgx_setup() {
     renderer.setViewportSize(SLX, SLY);
     renderer.setOffset(0, 0);
-    renderer.setImage(getImageBuffer()); // set the image to draw onto (ie the screen framebuffer)
+    renderer.setImage(getLocalImageBuffer()); // set the image to draw onto (ie the screen framebuffer)
     renderer.setZbuffer(zbuf); // set the z buffer for depth testing
     renderer.setPerspective(45, ((float) SLX) / SLY, 1.0f, 100.0f);  // set the perspective projection matrix.
     renderer.setCulling(1);
@@ -75,105 +75,109 @@ extern "C" void tgx_setup() {
 
 }
 
-void drawCube(float x, float y, float z, RGB565 c) {
-    renderer.setMaterial(tgx::RGBf(c), 1, 0, 0, 0); // set material properties
-//    renderer.setMaterialColor(tgx::RGBf(1, 0, 0)); // set material properties
-    renderer.setModelPosScaleRot({x, y, z}, {5, 5, 5}, 0); // set the position of the mesh
+
+// 每个facelet对应的cubelet所在位置对应cubeletPosition的索引
+uint8_t cubeFacelets[6][9] = {
+        {8,  17, 26, 5,  14, 23, 2,  11, 20},
+        {20, 23, 26, 19, 22, 25, 18, 21, 24},
+        {2,  11, 20, 1,  10, 19, 0,  9,  18},
+        {0,  9,  18, 3,  12, 21, 6,  15, 24},
+        {8,  5,  2,  7,  4,  1,  6,  3,  0},
+        {26, 17, 8,  25, 16, 7,  24, 15, 6}
+};
 
 
-    float epsx = 0, epsy = 0;
+RGB565 colors[6] = {
+        RGB565_Black, RGB565_White, RGB565_Red, RGB565_Blue, RGB565_Green, RGB565_Orange
+};
 
 
-//    for (int i = 0; i < 6; ++i) {
-//        renderer.drawQuad(UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 0]],
-//                          UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 1]],
-//                          UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 2]],
-//                          UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 3]]);
-//    }
-
-    if (x+y+z>25){
-        //    renderer.drawMesh(&cube, true);
-        for (int i = 0; i < 6; ++i) {
-            epsx = fast_inv((float) (logo_texture.lx() - 1));
-            epsy = fast_inv((float) (logo_texture.ly() - 1));
-
-            tgx::fVec2 t_front[4] = {tgx::fVec2(epsx, epsy), tgx::fVec2(epsx, 1 - epsy), tgx::fVec2(1 - epsx, 1 - epsy),
-                                     tgx::fVec2(1 - epsx, epsy)};
-            renderer.drawQuad(UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 0]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 1]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 2]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 3]], nullptr, nullptr, nullptr, nullptr,
-                              &t_front[0], &t_front[1], &t_front[2], &t_front[3], &logo_texture);
-        }
-    } else{
-        //    renderer.drawMesh(&cube, true);
-        for (int i = 0; i < 6; ++i) {
-            renderer.drawQuad(UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 0]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 1]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 2]],
-                              UNIT_CUBE_VERTICES[UNIT_CUBE_FACES[i * 4 + 3]]);
-        }
-    }
-
-}
-
-RGB565 colors[3][3][3] = {
+const fVec3 cubeletPosition[3][3][3] = {
         {
                 {
-                        RGB565_Black,  RGB565_White,  RGB565_Red
+                        {-1, -1, -1}, {-1, -1, 0}, {-1, -1, 1}
                 },
                 {
-                        RGB565_Blue,    RGB565_Green, RGB565_Purple
+                        {-1, 0, -1}, {-1, 0, 0}, {-1, 0, 1}
                 },
                 {
-                        RGB565_Orange, RGB565_Cyan,   RGB565_Lime
+                        {-1, 1, -1}, {-1, 1, 0}, {-1, 1, 1}
                 }
         },
         {
                 {
-                        RGB565_Salmon, RGB565_Maroon, RGB565_Yellow
+                        {0,  -1, -1}, {0,  -1, 0}, {0,  -1, 1}
                 },
                 {
-                        RGB565_Magenta, RGB565_Olive, RGB565_Teal
+                        {0,  0, -1}, {0,  0, 0}, {0,  0, 1}
                 },
                 {
-                        RGB565_Gray,   RGB565_Silver, RGB565_Navy
+                        {0,  1, -1}, {0,  1, 0}, {0,  1, 1}
                 }
         },
         {
                 {
-                        RGB565_Black,  RGB565_White,  RGB565_Red
+                        {1,  -1, -1}, {1,  -1, 0}, {1,  -1, 1}
                 },
                 {
-                        RGB565_Blue,    RGB565_Green, RGB565_Purple
+                        {1,  0, -1}, {1,  0, 0}, {1,  0, 1}
                 },
                 {
-                        RGB565_Orange, RGB565_Cyan,   RGB565_Lime
+                        {1,  1, -1}, {1,  1, 0}, {1,  1, 1}
                 }
         }
 };
 
 
+const tgx::fVec3 GENERAL_CUBE_POINT[8] =
+        {
+                {-1, 1,  1},
+                {-1, -1, 1},
+                {1,  -1, 1},
+                {1,  1,  1},
+                {1,  1,  -1},
+                {1,  -1, -1},
+                {-1, -1, -1},
+                {-1, 1,  -1}
+        };
+
+const uint16_t GENERAL_CUBE_FACES[6 * 4] =
+        {
+                0, 1, 2, 3,
+                3, 2, 5, 4,
+                1, 6, 5, 2,
+                4, 5, 6, 7,
+                7, 6, 1, 0,
+                7, 0, 3, 4,
+        };
+
 extern "C" void tgx_next() {
     static uint32_t r = 0;
-    getImageBuffer()->clear(tgx::RGB565_Gray);  // clear the image
+    getLocalImageBuffer()->clear(tgx::RGB565_Gray);  // clear the image
     renderer.clearZbuffer(); // and the zbuffer.
     r++;
 
-    renderer.setLookAt({70 * cosf(r * 0.08f), 70 * sinf(r * 0.08), 50}, {0, 0, 0}, {0, 0, 1});
+    renderer.setLookAt({15 * cosf(r * 0.08f), 15 * sinf(r * 0.08), -15}, {0, 0, 0}, {0, 0, 1});
 
 
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 9; ++j) {
+            renderer.setMaterial(RGBf(((RGB565 *) colors)[i]), 1, 0, 0, 0); // set material properties
+            fVec3 pVec3 = ((fVec3 *) cubeletPosition)[cubeFacelets[i][j]];
 
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
-            for (int k = -1; k <= 1; ++k) {
-                if (i==0 && j==0 && k==0) continue;
-                drawCube(i * 10, j * 10, k * 10, colors[i + 1][j + 1][k + 1]);
-            }
+            renderer.setModelPosScaleRot({pVec3.x * 2, pVec3.y * 2, pVec3.z * 2}, {1, 1, 1},
+                                         0); // set the position of the mesh
+
+            renderer.drawQuad(GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[i * 4 + 0]],
+                              GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[i * 4 + 1]],
+                              GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[i * 4 + 2]],
+                              GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[i * 4 + 3]]);
         }
     }
+
+
     screenIndex = !screenIndex;
-    renderer.setImage(getImageBuffer()); // set the image to draw onto (ie the screen framebuffer)
+    renderer.setImage(getLocalImageBuffer());
 }
 
 extern "C" uint16_t *getFrame() {
