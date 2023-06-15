@@ -34,6 +34,7 @@
 #include "config.h"
 
 #include "tgx.h"
+#include "cube.h"
 #include "logo_texture.h"
 
 using namespace tgx;
@@ -76,88 +77,13 @@ extern "C" void tgx_setup() {
 }
 
 
-// 每个facelet对应的cubelet所在位置对应cubeletPosition的索引
-uint8_t cubeFacelets[6][9] = {
-        {8,  17, 26, 5,  14, 23, 2,  11, 20},
-        {20, 23, 26, 19, 22, 25, 18, 21, 24},
-        {2,  11, 20, 1,  10, 19, 0,  9,  18},
-        {0,  9,  18, 3,  12, 21, 6,  15, 24},
-        {8,  5,  2,  7,  4,  1,  6,  3,  0},
-        {26, 17, 8,  25, 16, 7,  24, 15, 6}
-};
-
-
-RGB565 colors[6] = {
-        RGB565_Black, RGB565_White, RGB565_Red, RGB565_Blue, RGB565_Green, RGB565_Orange
-};
-
-
-const fVec3 cubeletPosition[3][3][3] = {
-        {
-                {
-                        {-1, -1, -1}, {-1, -1, 0}, {-1, -1, 1}
-                },
-                {
-                        {-1, 0, -1}, {-1, 0, 0}, {-1, 0, 1}
-                },
-                {
-                        {-1, 1, -1}, {-1, 1, 0}, {-1, 1, 1}
-                }
-        },
-        {
-                {
-                        {0,  -1, -1}, {0,  -1, 0}, {0,  -1, 1}
-                },
-                {
-                        {0,  0, -1}, {0,  0, 0}, {0,  0, 1}
-                },
-                {
-                        {0,  1, -1}, {0,  1, 0}, {0,  1, 1}
-                }
-        },
-        {
-                {
-                        {1,  -1, -1}, {1,  -1, 0}, {1,  -1, 1}
-                },
-                {
-                        {1,  0, -1}, {1,  0, 0}, {1,  0, 1}
-                },
-                {
-                        {1,  1, -1}, {1,  1, 0}, {1,  1, 1}
-                }
-        }
-};
-
-
-const tgx::fVec3 GENERAL_CUBE_POINT[8] =
-        {
-                {-1, 1,  1},
-                {-1, -1, 1},
-                {1,  -1, 1},
-                {1,  1,  1},
-                {1,  1,  -1},
-                {1,  -1, -1},
-                {-1, -1, -1},
-                {-1, 1,  -1}
-        };
-
-const uint16_t GENERAL_CUBE_FACES[6 * 4] =
-        {
-                0, 1, 2, 3,
-                3, 2, 5, 4,
-                1, 6, 5, 2,
-                4, 5, 6, 7,
-                7, 6, 1, 0,
-                7, 0, 3, 4,
-        };
-
 extern "C" void tgx_next() {
     static uint32_t r = 0;
     getLocalImageBuffer()->clear(tgx::RGB565_Gray);  // clear the image
     renderer.clearZbuffer(); // and the zbuffer.
     r++;
 
-    renderer.setLookAt({15 * cosf(r * 0.08f), 15 * sinf(r * 0.08), -15}, {0, 0, 0}, {0, 0, 1});
+    renderer.setLookAt({15 * cosf(r * 0.08f), 15 * sinf(r * 0.08), 15}, {0, 0, 0}, {0, 0, 1});
 
 
     for (int i = 0; i < 6; ++i) {

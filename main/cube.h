@@ -1,81 +1,80 @@
-// 3D model [cube]
-//
-// - vertices   : 8
-// - textures   : 0
-// - normals    : 0
-// - triangles  : 12
-//
-// - memory size: 0kb
-//
-// - model bounding box: [-1.0,1.0]x[-1.0,1.0]x[-1.0,1.0]
-//
-// object [cube] (tagged []) with 12 triangles (1 chains)
+#include "tgx.h"
 
-#pragma once
+using namespace tgx;
 
-#include <tgx.h>
-
-
-// vertex array: 0kb.
-const tgx::fVec3 cube_vert_array[8] PROGMEM = {
-{1.0,1.0,1.0},
-{1.0,-1.0,-1.0},
-{1.0,1.0,-1.0},
-{-1.0,1.0,1.0},
-{-1.0,1.0,-1.0},
-{-1.0,-1.0,-1.0},
-{1.0,-1.0,1.0},
-{-1.0,-1.0,1.0}
+// 每个facelet所在的的cubelet所对应cubeletPosition的索引
+// 顺序为URFDLB
+uint8_t cubeFacelets[6][9] = {
+        {8,  17, 26, 5,  14, 23, 2,  11, 20},
+        {20, 23, 26, 19, 22, 25, 18, 21, 24},
+        {2,  11, 20, 1,  10, 19, 0,  9,  18},
+        {0,  9,  18, 3,  12, 21, 6,  15, 24},
+        {8,  5,  2,  7,  4,  1,  6,  3,  0},
+        {26, 17, 8,  25, 16, 7,  24, 15, 6}
 };
 
 
-// face array: 0kb.
-const uint16_t cube_face[16] PROGMEM = {
-12, // chain 0
-0, 1, 2, 
-3, 32772, 32773, 32769, 6, 32768, 3, 7, 32772, 5, 6, 
+RGB565 colors[6] = {
+        RGB565_Black, RGB565_White, RGB565_Red, RGB565_Blue, RGB565_Green, RGB565_Orange
+};
 
- 0};
+// 魔方27的cubelet对应的位置坐标。
+const fVec3 cubeletPosition[3][3][3] = {
+        {
+                {
+                        {-1, -1, -1}, {-1, -1, 0}, {-1, -1, 1}
+                },
+                {
+                        {-1, 0, -1}, {-1, 0, 0}, {-1, 0, 1}
+                },
+                {
+                        {-1, 1, -1}, {-1, 1, 0}, {-1, 1, 1}
+                }
+        },
+        {
+                {
+                        {0,  -1, -1}, {0,  -1, 0}, {0,  -1, 1}
+                },
+                {
+                        {0,  0, -1}, {0,  0, 0}, {0,  0, 1}
+                },
+                {
+                        {0,  1, -1}, {0,  1, 0}, {0,  1, 1}
+                }
+        },
+        {
+                {
+                        {1,  -1, -1}, {1,  -1, 0}, {1,  -1, 1}
+                },
+                {
+                        {1,  0, -1}, {1,  0, 0}, {1,  0, 1}
+                },
+                {
+                        {1,  1, -1}, {1,  1, 0}, {1,  1, 1}
+                }
+        }
+};
 
 
-// mesh info for object cube (with tag [])
-const tgx::Mesh3D<tgx::RGB565> cube PROGMEM = 
-    {
-    1, // version/id
-    
-    8, // number of vertices
-    0, // number of texture coords
-    0, // number of normal vectors
-    12, // number of triangles
-    16, // size of the face array. 
-
-    cube_vert_array, // array of vertices
-    nullptr, // array of texture coords
-    nullptr, // array of normal vectors        
-    cube_face, // array of face vertex indexes   
-    
-    nullptr, // pointer to texture image 
-    
-    { 0.75f , 0.75f, 0.75f }, // default color
-    
-    0.1f, // ambiant light strength 
-    0.7f, // diffuse light strength
-    0.6f, // specular light strength
-    32, // specular exponent
-    
-    nullptr, // next mesh to draw after this one    
-    
-    { // mesh bounding box
-    -1.0f, 1.0f, 
-    -1.0f, 1.0f, 
-    -1.0f, 1.0f
-    },
-    
-    "cube" // model name    
-    };
-    
-                
-/** end of cube.h */
-    
-    
-    
+// 一个普通立方体的的8个顶点
+const tgx::fVec3 GENERAL_CUBE_POINT[8] =
+        {
+                {-1, 1,  1},
+                {-1, -1, 1},
+                {1,  -1, 1},
+                {1,  1,  1},
+                {1,  1,  -1},
+                {1,  -1, -1},
+                {-1, -1, -1},
+                {-1, 1,  -1}
+        };
+// 一个立方体的六个面，每面上的四个点，用这4顶点画正方形，6个正方形组成立方体
+const uint16_t GENERAL_CUBE_FACES[6 * 4] =
+        {
+                0, 1, 2, 3,
+                3, 2, 5, 4,
+                1, 6, 5, 2,
+                4, 5, 6, 7,
+                7, 6, 1, 0,
+                7, 0, 3, 4,
+        };
