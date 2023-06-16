@@ -15,7 +15,7 @@ uint8_t cubeFacelets[6][9] = {
 
 
 RGB565 colors[6] = {
-        RGB565_Black, RGB565_White, RGB565_Red, RGB565_Blue, RGB565_Green, RGB565_Orange
+        RGB565_Yellow, RGB565_White, RGB565_Red, RGB565_Blue, RGB565_Green, RGB565_Orange
 };
 
 // 魔方27的cubelet对应的位置坐标。
