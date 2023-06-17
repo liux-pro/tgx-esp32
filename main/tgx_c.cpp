@@ -36,7 +36,8 @@
 #include "tgx.h"
 #include "cube.h"
 #include "logo_texture.h"
-#define PI		3.14159265358979323846f
+
+#define PI        3.14159265358979323846f
 
 using namespace tgx;
 
@@ -57,11 +58,16 @@ Image<RGB565> imageBuffer[2] = {
         Image<RGB565>(fb[1], SLX, SLY)
 };
 
-Image<RGB565> *getLocalImageBuffer() {
+/**
+ * 获取当前的缓冲区,他会自动处理双缓冲切换
+ * @return
+ */
+static Image<RGB565> *getLocalImageBuffer() {
     return &imageBuffer[screenIndex];
 }
 
 Renderer3D<RGB565, TGX_SHADER_MASK_ALL, float> renderer;
+
 
 extern "C" void tgx_setup() {
     renderer.setViewportSize(SLX, SLY);
@@ -73,66 +79,112 @@ extern "C" void tgx_setup() {
     renderer.setTextureQuality(SHADER_TEXTURE_NEAREST);
     renderer.setTextureWrappingMode(SHADER_TEXTURE_WRAP_POW2);
     renderer.setShaders(SHADER_TEXTURE);
-
-
+//    for (int i = 0; i < 6; ++i) {
+//        rotateCube(cubeBuffer, i, true);
+//    }
+//    for (int i = 0; i < 6; ++i) {
+//        rotateCube(cubeBuffer, i, false);
+//    }
+    startRotateCube(1, false,15);
 }
 
 
-int8_t fuck = 3;
-int16_t degrees = 0;
-
-
-void drawQuad(const fMat4 &M, uint8_t direction) {
+/**
+ * 给出描述位置平移旋转等信息的变换矩阵
+ * 按 @dir 描述的方向,绘制一个正方形
+ * @param M 变换矩阵
+ * @param dir 绘制方向,或者说绘制立方体的哪个面
+ */
+static inline void drawQuad(const fMat4 &M, uint8_t dir) {
     renderer.setModelMatrix(M);
-
-    renderer.drawQuad(GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[direction * 4 + 0]],
-                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[direction * 4 + 1]],
-                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[direction * 4 + 2]],
-                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[direction * 4 + 3]]);
+    renderer.drawQuad(GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[dir][0]],
+                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[dir][1]],
+                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[dir][2]],
+                      GENERAL_CUBE_POINT[GENERAL_CUBE_FACES[dir][3]]);
 }
 
+bool animationBusy = false;
+
+uint8_t animationFrameCountMax = 0;
+uint8_t animationFrameCountLeft = 0;
+uint8_t animationFrameDirection = 0;
+bool animationFrameClockwise;
+
+
+bool isAnimationBusy() {
+    return animationBusy;
+}
+
+void setAnimationBusy(bool busy) {
+    animationBusy = busy;
+}
+
+bool startRotateCube(uint8_t dir, bool clockwise, uint8_t frameCount) {
+    if (isAnimationBusy()) {
+        return false;
+    }
+    setAnimationBusy(true);
+    animationFrameDirection = dir;
+    animationFrameCountMax = frameCount;
+    animationFrameCountLeft = frameCount;
+    animationFrameClockwise = clockwise;
+    return true;
+}
+
+float easeInOutCubic(float x) {
+    return x < 0.5f ? 4.0f * x * x * x : 1.0f - powf(-2.0f * x + 2.0f, 3.0f) / 2.0f;
+}
 extern "C" void tgx_next() {
-    static uint16_t r = 0;
+    static uint16_t cameraRotate = 0;
     getLocalImageBuffer()->clear(tgx::RGB565_Gray);  // clear the image
     renderer.clearZbuffer(); // and the zbuffer.
-    r++;
+    cameraRotate++;
 
-    if (r == 360) {
-        r = 0;
-    }
-    degrees++;
-    if (degrees == 360) {
-        degrees = 0;
-        fuck++;
-        fuck=fuck%6;
+    if (cameraRotate == 360) {
+        cameraRotate = 0;
     }
 
 
+    float angle = 0;
+    if (isAnimationBusy()) {
+        if (animationFrameCountLeft==0){
+            rotateCube(cubeBuffer,animationFrameDirection,animationFrameClockwise);
+            setAnimationBusy(false);
+            startRotateCube(rand() % 6,rand() % 2,15);
+        } else{
+            float dir_f = animationFrameClockwise ? -1.0f : 1.0f;
+            const auto percent = static_cast<float>((animationFrameCountMax - animationFrameCountLeft)) /
+                                    static_cast<float>(animationFrameCountMax);
+            angle = dir_f * 90.0f * easeInOutCubic(percent);
+            animationFrameCountLeft--;
+        }
+    }
 
-    float radians= PI * (r/180.0f);
-    renderer.setLookAt({8*cos(radians), 8*sin(radians), 8}, {0, 0, 0}, {0, 0, 1});
+
+    float radians = PI *(cameraRotate / 180.0f);
+    renderer.setLookAt({8 * cos(radians), 8 * sin(radians), 8}, {0, 0, 0}, {0, 0, 1});
 //    renderer.setLookAt({5, 5, -5}, {0, 0, 0}, {0, 0, 1});
 
 
     for (int i = 0; i < 6; ++i) { //分面绘制，按顺序绘制6个面
         for (int j = 0; j < 9; ++j) { //绘制每个大面的9个小facelet
             const fVec3 &position = ((fVec3 *) cubeletPosition)[cubeFacelets[i][j]];
-            renderer.setMaterial(RGBf(((RGB565 *) colors)[i]), 1, 0, 0, 0); // set material properties
+            renderer.setMaterial(RGBf(colors[cubeBuffer[i][j]]), 1, 0, 0, 0); // set material properties
             //cubelet的位置
             fMat4 M;  //变换矩阵
             M.setScale({0.5, 0.5, 0.5}); //缩小
             M.multTranslate({position.x, position.y, position.z});  //平移到自己该在的位置
             //下面当前的facelet是否需要旋转。
-            if (fuck > -1) { //魔方不被拧的时候就是-1,0到5对应是哪个面要被拧。
+            if (isAnimationBusy()) { // 有动画就是需要有旋转的面
                 //所在平面方程的系数，y=ax+by+cz,把当前facelet所在的cubelet的位置带入方程，如果y大于0就代表当前位置的cubelet属于需要旋转的层
                 //相当于一个平面分割了27块cubelet为需要旋转的层和无需旋转的另外两层
                 //需要旋转的面的中心cubelet的位置坐标，恰好和这个分割面的表示方程的系数对应。
-                const fVec3 &k = ((fVec3 *) cubeletPosition)[cubeFacelets[fuck][4]];
+                const fVec3 &k = ((fVec3 *) cubeletPosition)[cubeFacelets[animationFrameDirection][4]];
                 float y = k.x * position.x + k.y * position.y + k.z * position.z;
                 if (y > 0) { //如果y大于0就代表当前位置的cubelet属于需要旋转的层
                     //以当前层的法线方向旋转，这层9个cubelet，中间的那个的位置如果看做一个方向向量，正好是法线方向，把他当成旋转轴。
-                    const fVec3 &rotateDirection = ((fVec3 *) cubeletPosition)[cubeFacelets[fuck][4]];
-                    M.multRotate(degrees, rotateDirection);
+                    const fVec3 &rotateDirection = ((fVec3 *) cubeletPosition)[cubeFacelets[animationFrameDirection][4]];
+                    M.multRotate(angle, rotateDirection);   //另外要注意,旋转函数总是绕原点旋转,要注意平移和旋转的先后向顺序
                 }
             }
             drawQuad(M, i);  //绘制facelet
@@ -142,11 +194,14 @@ extern "C" void tgx_next() {
             // 不能让他镂空，所以要在上面渲染上黑的的面，为了好看。
             // 一共需要绘制16个面，也就是旋转层的8个cubelet沿旋转法线反方向的8个面以及
             // 和旋转层挨着的那个中间层沿旋转法线方向的8个面。
-            renderer.setMaterial(RGBf(RGB565_Purple), 1, 0, 0, 0); // set material properties
-            if (i == fuck && j != 4) {
+            if (!isAnimationBusy()) { // 判断是否有转动,没有转动就不用绘制内部的面了
+                continue;
+            }
+            renderer.setMaterial(RGBf(RGB565_Black), 1, 0, 0, 0); // set material properties
+            if (i == animationFrameDirection && j != 4) {
                 drawQuad(M, (i + 3) % 6);//对于前8个，就是当前facelet的反方向就行了。
                 {// 后8个面  后八个面是不旋转的
-                    const fVec3 &offset = ((fVec3 *) cubeletPosition)[cubeFacelets[fuck][4]];
+                    const fVec3 &offset = ((fVec3 *) cubeletPosition)[cubeFacelets[animationFrameDirection][4]];
                     const fVec3 &midLayerPosition = position - offset; //当前cubelet沿旋转轴法线反方向的那个cubelet的位置
                     M.setZero();
                     M.setScale({0.5, 0.5, 0.5}); //缩小
